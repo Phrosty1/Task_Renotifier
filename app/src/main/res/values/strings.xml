@@ -1,6 +1,7 @@
 <resources>
     <string name="app_name">Task Renotifier</string>
 
-    <string name="hello_world">Hello world!</string>
+    <string name="textDone">Done with this</string>
+    <string name="textFuture">Ready for this</string>
     <string name="action_settings">Settings</string>
 </resources>
