@@ -9,22 +9,26 @@
     android:paddingTop="@dimen/activity_vertical_margin"
     tools:context=".MainActivity">
 
-    <ScrollView
-        android:id="@+id/svTaskInstances"
+    <ViewFlipper
+        android:id="@+id/vfMain"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content">
+        android:layout_height="match_parent">
 
-        <LinearLayout
+        <ListView
+            android:id="@+id/svTaskInstances"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="vertical">
+            android:layout_height="match_parent" />
 
-            <TextView
-                android:id="@+id/textTaskDone"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="@string/textDone" />
-        </LinearLayout>
-    </ScrollView>
+        <include
+            layout="@layout/task_edit"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent" />
+
+        <ListView
+            android:id="@+id/svTasks"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent" />
+
+    </ViewFlipper>
 
 </RelativeLayout>

@@ -3,9 +3,12 @@ package com.basilarray.taskrenotifier;
 import android.app.Activity;
 import android.app.AlarmManager;
 import android.app.PendingIntent;
+import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.database.Cursor;
+import android.database.sqlite.SQLiteDatabase;
 import android.os.SystemClock;
 import android.support.v4.view.ViewPager;
 import android.support.v7.app.AppCompatActivity;
@@ -15,10 +18,16 @@ import android.util.TypedValue;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.MotionEvent;
-import android.widget.LinearLayout;
+import android.view.View;
 import android.widget.ListView;
 import android.widget.ScrollView;
+import android.widget.SimpleCursorAdapter;
 import android.widget.TextView;
+import android.widget.ViewFlipper;
+import android.widget.ViewSwitcher;
+
+import com.basilarray.taskrenotifier.db.TaskContract;
+import com.basilarray.taskrenotifier.db.TaskDBHelper;
 
 import java.util.ArrayList;
 import java.util.Calendar;
@@ -27,8 +36,11 @@ import java.util.Date;
 public class MainActivity extends AppCompatActivity {
     private ViewPager mViewPager;
     private Context mContext;
-    public ScrollView svTasks;
-    public ScrollView svTaskInstances;
+    public ListView svTasks;
+    public ListView svTaskInstances;
+    //public Drawable imgDragDrop;
+    public ViewFlipper vfMain;
+
 
     public class SortableTextView extends TextView {
         public ScrollView svParent;
@@ -48,32 +60,30 @@ public class MainActivity extends AppCompatActivity {
             task = inTask;
             this.setTextSize(TypedValue.COMPLEX_UNIT_SP, 20); // SP for text, DIP for other
             this.setText(task.sTitle);
-            //this.setCompoundDrawables(imgDragDrop, null, null, null);
+            //this.setCompoundDrawables(imgDragDrop, null, imgDragDrop, null);
         }
     }
 
     public class Task {
         public String sTitle, sDescription;
         public int freqType, freqNumber, freqUnits;
-        public Long dtStart = new Long(0), dtLastSnoozed = new Long(0);
-        public boolean bAllPushOut;
+        public Long dtStart = new Date().getTime(), dtLastSnoozed = new Date().getTime();
+        public boolean bAllPushOut = true, bEnabled = true;
         public ArrayList<Long> tInstances = new ArrayList<Long>();
 
         public Task(String inImport) {
             String[] properties = Util.explode(inImport, cDivProperty);
             sTitle = properties[0];
             sDescription = properties[1];
-            //Log.d("tmp","properties[2]:"+properties[2]);
             freqType = Integer.parseInt(properties[2]);
             freqNumber = Integer.parseInt(properties[3]);
             freqUnits = Integer.parseInt(properties[4]);
-            //Log.d("tmp","properties[5]:"+properties[5]);
             dtStart = Long.parseLong(properties[5]);
             dtLastSnoozed = Long.parseLong(properties[6]);
-            //Log.d("tmp","properties[7]:"+properties[7]);
             bAllPushOut = Boolean.parseBoolean(properties[7]);
-            if (properties[8].compareTo("null") != 0) {
-                String[] instances = Util.explode(properties[8], cDivInstance);
+            bEnabled = Boolean.parseBoolean(properties[8]);
+            if (properties[9].compareTo("null") != 0) {
+                String[] instances = Util.explode(properties[9], cDivInstance);
                 for (String e : instances) tInstances.add(Long.parseLong(e));
             }
         }
@@ -85,7 +95,7 @@ public class MainActivity extends AppCompatActivity {
 
         public String getExport() {
             String sInstances = Util.implode(tInstances.toArray(), cDivInstance);
-            return Util.implode(new String[]{sTitle, sDescription, String.valueOf(freqType), String.valueOf(freqNumber), String.valueOf(freqUnits), String.valueOf(dtStart), String.valueOf(dtLastSnoozed), String.valueOf(bAllPushOut), sInstances}, cDivProperty);
+            return Util.implode(new String[]{sTitle, sDescription, String.valueOf(freqType), String.valueOf(freqNumber), String.valueOf(freqUnits), String.valueOf(dtStart), String.valueOf(dtLastSnoozed), String.valueOf(bAllPushOut), String.valueOf(bEnabled), sInstances}, cDivProperty);
         }
     }
 
@@ -96,6 +106,7 @@ public class MainActivity extends AppCompatActivity {
         mContext = this;
         Thread threadInit = new Thread(initializeScreen);
         threadInit.start();
+        //initializeScreen.run();
     }
 
     //public static final long dfltLong = new Date().getTime();
@@ -107,7 +118,10 @@ public class MainActivity extends AppCompatActivity {
     Runnable initializeScreen = new Runnable() {
         @Override
         public void run() {
-            svTaskInstances = (ScrollView) findViewById(R.id.svTaskInstances);
+            Log.d("tmp", "initializeScreen.run");
+            vfMain = (ViewFlipper) findViewById(R.id.vfMain);
+            svTaskInstances = (ListView) findViewById(R.id.svTaskInstances);
+            svTasks = (ListView) findViewById(R.id.svTasks);
 
             SharedPreferences lSettings = getPreferences(Activity.MODE_PRIVATE);
 
@@ -120,13 +134,59 @@ public class MainActivity extends AppCompatActivity {
             //TextView mTextView = (TextView) findViewById(R.id.section_label);
             //mTextView.setText("Newly Added");
             //mListView.addView(mTextView);
+
+            //double pixelDensity = getApplicationContext().getResources().getDisplayMetrics().density;
+            //imgDragDrop = getResources().getDrawable(R.drawable.ic_stat_name);
+            //imgDragDrop.setBounds(0, 0, (int) (pixelDensity * 20), (int) (pixelDensity * 20));
+
+            //((LinearLayout) svTaskInstances.getChildAt(0)).
             String[] tAllTasks = Util.explode(sAllTasks, cDivTask);
+            ListView svTestTaskInstances = (ListView) findViewById(R.id.svTaskInstances);
             for (String e : tAllTasks) {
                 SortableTextView tmpTextView = new SortableTextView(mContext, new Task(e));
-                ((LinearLayout) svTaskInstances.getChildAt(0)).addView(tmpTextView);
+                //SimpleCursorAdapter listAdapter = new SimpleCursorAdapter(mContext, R.layout.task_view, )
+                //ListAdapter listAdapter = new Adapter
+                //svTestTaskInstances.setAdapter();
+                //((LinearLayout) svTaskInstances.getChildAt(0)).addView(tmpTextView);
             }
+
+            if (false) {
+                TaskDBHelper helper = new TaskDBHelper(MainActivity.this);
+                SQLiteDatabase db = helper.getWritableDatabase();
+                //db.execSQL("DROP TABLE IF EXISTS tasks");
+                helper.onUpgrade(db, 0,1);
+                //helper.onCreate(db);
+
+                ContentValues values = new ContentValues();
+                values.clear();
+                values.put(TaskContract.Tasks.TITLE, "Feed Kitty");
+                values.put(TaskContract.Tasks.DESCRIPTION, "The kitty likes its food");
+                db.insertWithOnConflict(TaskContract.Tasks.TABLENAME, null, values, SQLiteDatabase.CONFLICT_IGNORE);
+            }
+
+            updateUI();
         }
     };
+
+    private void updateUI() {
+        TaskDBHelper helper = new TaskDBHelper(MainActivity.this);
+        SQLiteDatabase sqlDB = helper.getReadableDatabase();
+//        Cursor cursor = sqlDB.query(TaskContract.Tasks.TABLENAME,
+//                new String[]{TaskContract.Tasks._ID, TaskContract.Tasks.TITLE},
+//                null, null, null, null, null);
+        Cursor cursor = sqlDB.rawQuery("SELECT "+TaskContract.Tasks._ID+","+TaskContract.Tasks.TITLE+" FROM tasks", null);
+
+        SimpleCursorAdapter listAdapter = new SimpleCursorAdapter(
+                this,
+                R.layout.task_view,
+                cursor,
+                new String[]{TaskContract.Tasks.TITLE},
+                new int[]{R.id.taskTextView},
+                0
+        );
+
+        svTaskInstances.setAdapter(listAdapter);
+    }
 
     public void Remind(String title, String text) {
         Log.d("tmp", "Alarm Created Begin");
@@ -171,6 +231,10 @@ public class MainActivity extends AppCompatActivity {
 
         //noinspection SimplifiableIfStatement
         if (id == R.id.action_settings) {
+            vfMain.setDisplayedChild(0);
+            return true;
+        } else if (id == R.id.action_newtask){
+            vfMain.setDisplayedChild(1);
             return true;
         }
 
