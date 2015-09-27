@@ -13,7 +13,7 @@
         android:layout_alignParentTop="true" />
 
     <TextView
-        android:id="@+id/txtName"
+        android:id="@+id/txtTitle"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_alignParentTop="true"
@@ -23,16 +23,12 @@
         android:text="New Text"
         android:textSize="20dp" />
 
-    <TextView
-        android:id="@+id/dtDueDone"
+    <Button
+        android:id="@+id/doneButton"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_alignParentEnd="true"
         android:layout_alignParentRight="true"
         android:layout_alignParentTop="true"
-        android:gravity="center_vertical"
-        android:text="12/31"
-        android:textSize="20dp" />
-
-
+        android:text="Done" />
 </RelativeLayout>

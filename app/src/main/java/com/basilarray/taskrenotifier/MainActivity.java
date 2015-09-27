@@ -18,13 +18,11 @@ import android.util.TypedValue;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.MotionEvent;
-import android.view.View;
 import android.widget.ListView;
 import android.widget.ScrollView;
 import android.widget.SimpleCursorAdapter;
 import android.widget.TextView;
 import android.widget.ViewFlipper;
-import android.widget.ViewSwitcher;
 
 import com.basilarray.taskrenotifier.db.TaskContract;
 import com.basilarray.taskrenotifier.db.TaskDBHelper;
@@ -154,7 +152,7 @@ public class MainActivity extends AppCompatActivity {
                 TaskDBHelper helper = new TaskDBHelper(MainActivity.this);
                 SQLiteDatabase db = helper.getWritableDatabase();
                 //db.execSQL("DROP TABLE IF EXISTS tasks");
-                helper.onUpgrade(db, 0,1);
+                helper.onUpgrade(db, 0, 1);
                 //helper.onCreate(db);
 
                 ContentValues values = new ContentValues();
@@ -164,24 +162,41 @@ public class MainActivity extends AppCompatActivity {
                 db.insertWithOnConflict(TaskContract.Tasks.TABLENAME, null, values, SQLiteDatabase.CONFLICT_IGNORE);
             }
 
-            updateUI();
+            refreshTasks();
+            refreshInstances();
         }
     };
 
-    private void updateUI() {
+    private void refreshTasks() {
         TaskDBHelper helper = new TaskDBHelper(MainActivity.this);
         SQLiteDatabase sqlDB = helper.getReadableDatabase();
-//        Cursor cursor = sqlDB.query(TaskContract.Tasks.TABLENAME,
-//                new String[]{TaskContract.Tasks._ID, TaskContract.Tasks.TITLE},
-//                null, null, null, null, null);
-        Cursor cursor = sqlDB.rawQuery("SELECT "+TaskContract.Tasks._ID+","+TaskContract.Tasks.TITLE+" FROM tasks", null);
+        Cursor cursor = sqlDB.rawQuery("SELECT " + TaskContract.Tasks._ID + "," + TaskContract.Tasks.TITLE +
+                ", (SELECT MAX (dt_due) FROM instances i WHERE i.parent_id = t._id)" + TaskContract.Instances.DT_DUE +
+                " FROM tasks t", null);
 
         SimpleCursorAdapter listAdapter = new SimpleCursorAdapter(
                 this,
                 R.layout.task_view,
                 cursor,
+                new String[]{TaskContract.Tasks.TITLE, TaskContract.Instances.DT_DUE},
+                new int[]{R.id.txtTitle},
+                0
+        );
+
+        svTasks.setAdapter(listAdapter);
+    }
+
+    private void refreshInstances() {
+        TaskDBHelper helper = new TaskDBHelper(MainActivity.this);
+        SQLiteDatabase sqlDB = helper.getReadableDatabase();
+        Cursor cursor = sqlDB.rawQuery("SELECT " + TaskContract.Tasks._ID + "," + TaskContract.Tasks.TITLE + " FROM tasks", null);
+
+        SimpleCursorAdapter listAdapter = new SimpleCursorAdapter(
+                this,
+                R.layout.instance_view,
+                cursor,
                 new String[]{TaskContract.Tasks.TITLE},
-                new int[]{R.id.taskTextView},
+                new int[]{R.id.txtTitle},
                 0
         );
 
@@ -233,8 +248,14 @@ public class MainActivity extends AppCompatActivity {
         if (id == R.id.action_settings) {
             vfMain.setDisplayedChild(0);
             return true;
-        } else if (id == R.id.action_newtask){
+        } else if (id == R.id.action_newtask) {
+            vfMain.setDisplayedChild(0);
+            return true;
+        } else if (id == R.id.action_showTasks) {
             vfMain.setDisplayedChild(1);
+            return true;
+        } else if (id == R.id.action_showInstances) {
+            vfMain.setDisplayedChild(2);
             return true;
         }
 

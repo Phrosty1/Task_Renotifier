@@ -13,4 +13,14 @@
         android:title="@string/action_newtask"
         app:showAsAction="never" />
 
+    <item
+        android:id="@+id/action_showTasks"
+        android:orderInCategory="100"
+        android:title="Tasks"
+        app:showAsAction="never" />
+    <item
+        android:id="@+id/action_showInstances"
+        android:orderInCategory="100"
+        android:title="Instances"
+        app:showAsAction="never" />
 </menu>
