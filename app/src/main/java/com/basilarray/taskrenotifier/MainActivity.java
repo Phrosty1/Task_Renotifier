@@ -148,7 +148,7 @@ public class MainActivity extends AppCompatActivity {
                 //((LinearLayout) svTaskInstances.getChildAt(0)).addView(tmpTextView);
             }
 
-            if (false) {
+            if (true) {
                 TaskDBHelper helper = new TaskDBHelper(MainActivity.this);
                 SQLiteDatabase db = helper.getWritableDatabase();
                 //db.execSQL("DROP TABLE IF EXISTS tasks");
@@ -159,7 +159,12 @@ public class MainActivity extends AppCompatActivity {
                 values.clear();
                 values.put(TaskContract.Tasks.TITLE, "Feed Kitty");
                 values.put(TaskContract.Tasks.DESCRIPTION, "The kitty likes its food");
-                db.insertWithOnConflict(TaskContract.Tasks.TABLENAME, null, values, SQLiteDatabase.CONFLICT_IGNORE);
+                long nTaskID = db.insertWithOnConflict(TaskContract.Tasks.TABLENAME, null, values, SQLiteDatabase.CONFLICT_IGNORE);
+
+                values.clear();
+                values.put(TaskContract.Instances.PARENT_ID, nTaskID);
+                values.put(TaskContract.Instances.DT_DUE, new Date().getTime());
+                db.insertWithOnConflict(TaskContract.Instances.TABLENAME, null, values, SQLiteDatabase.CONFLICT_IGNORE);
             }
 
             refreshTasks();
@@ -171,25 +176,29 @@ public class MainActivity extends AppCompatActivity {
         TaskDBHelper helper = new TaskDBHelper(MainActivity.this);
         SQLiteDatabase sqlDB = helper.getReadableDatabase();
         Cursor cursor = sqlDB.rawQuery("SELECT " + TaskContract.Tasks._ID + "," + TaskContract.Tasks.TITLE +
-                ", (SELECT MAX (dt_due) FROM instances i WHERE i.parent_id = t._id)" + TaskContract.Instances.DT_DUE +
+                ", (SELECT MAX (dt_due) FROM instances i WHERE i.parent_id = t._id) " + TaskContract.Instances.DT_DUE +
+                ", (SELECT datetime (MAX (dt_due), 'unixepoch') FROM instances i WHERE i.parent_id = t._id) txt_dt_due" +
                 " FROM tasks t", null);
 
         SimpleCursorAdapter listAdapter = new SimpleCursorAdapter(
                 this,
                 R.layout.task_view,
                 cursor,
-                new String[]{TaskContract.Tasks.TITLE, TaskContract.Instances.DT_DUE},
-                new int[]{R.id.txtTitle},
+                new String[]{TaskContract.Tasks.TITLE, TaskContract.Instances.DT_DUE, "txt_dt_due"},
+                new int[]{R.id.txtTitle, R.id.dtDueDone, R.id.txtDueDone},
                 0
         );
 
         svTasks.setAdapter(listAdapter);
+        Object o = svTasks.getItemAtPosition(0);
+        Log.d("tmp", "svTasks.getChildCount():"+svTasks.getChildCount());
+        Log.d("tmp", o.toString());
     }
 
     private void refreshInstances() {
         TaskDBHelper helper = new TaskDBHelper(MainActivity.this);
         SQLiteDatabase sqlDB = helper.getReadableDatabase();
-        Cursor cursor = sqlDB.rawQuery("SELECT " + TaskContract.Tasks._ID + "," + TaskContract.Tasks.TITLE + " FROM tasks", null);
+        Cursor cursor = sqlDB.rawQuery("SELECT " + TaskContract.Tasks._ID + ", " + TaskContract.Tasks.TITLE + " FROM tasks", null);
 
         SimpleCursorAdapter listAdapter = new SimpleCursorAdapter(
                 this,
