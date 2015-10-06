@@ -198,7 +198,7 @@ public class MainActivity extends AppCompatActivity {
     private void refreshInstances() {
         TaskDBHelper helper = new TaskDBHelper(MainActivity.this);
         SQLiteDatabase sqlDB = helper.getReadableDatabase();
-        Cursor cursor = sqlDB.rawQuery("SELECT " + TaskContract.Tasks._ID + ", " + TaskContract.Tasks.TITLE + " FROM tasks", null);
+        Cursor cursor = sqlDB.rawQuery("SELECT " + TaskContract.Tasks._ID + ", " + TaskContract.Tasks.TITLE + " FROM " + TaskContract.Tasks.TABLENAME, null);
 
         SimpleCursorAdapter listAdapter = new SimpleCursorAdapter(
                 this,
